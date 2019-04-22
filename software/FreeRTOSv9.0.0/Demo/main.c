@@ -94,6 +94,7 @@ here. */
 #include "mpu6050/ioi2c.h"
 #include "mpu6050/MPU6050.h"
 #include "mpu6050/filter.h"
+//test git
 /* Priorities at which the tasks are created.  The event semaphore task is
 given the maximum priority of ( configMAX_PRIORITIES - 1 ) to ensure it runs as
 soon as the semaphore is given. */
