@@ -272,3 +272,32 @@ int Read_Temperature(void)
 		Temp=(36.53+Temp/340)*10;
 	  return (int)Temp;
 }
+
+void Get_Angle()
+{ 
+	    float Accel_Y,Accel_X,Accel_Z,Gyro_Y,Gyro_X;
+	    
+			float  Accel_X_atan,Accel_Y_atan;
+      Gyro_Y=(I2C_ReadOneByte(devAddr,MPU6050_RA_GYRO_YOUT_H)<<8)+I2C_ReadOneByte(devAddr,MPU6050_RA_GYRO_YOUT_L);    //读取Y轴陀螺仪
+			Gyro_X=(I2C_ReadOneByte(devAddr,MPU6050_RA_GYRO_XOUT_H)<<8)+I2C_ReadOneByte(devAddr,MPU6050_RA_GYRO_XOUT_L);
+      Accel_Z=(I2C_ReadOneByte(devAddr,MPU6050_RA_ACCEL_ZOUT_H)<<8)+I2C_ReadOneByte(devAddr,MPU6050_RA_ACCEL_ZOUT_L);    //读取Z轴陀螺仪
+		  Accel_X=(I2C_ReadOneByte(devAddr,MPU6050_RA_ACCEL_XOUT_H)<<8)+I2C_ReadOneByte(devAddr,MPU6050_RA_ACCEL_XOUT_L); //读取X轴加速度记
+	 		Accel_Y=(I2C_ReadOneByte(devAddr,MPU6050_RA_ACCEL_YOUT_H)<<8)+I2C_ReadOneByte(devAddr,MPU6050_RA_ACCEL_YOUT_L);
+      if(Gyro_Y>32768)  Gyro_Y-=65536;     //数据类型转换  也可通过short强制类型转换
+      if(Gyro_X>32768)  Gyro_X-=65536;     //数据类型转换  也可通过short强制类型转换
+		  if(Accel_Z>32768)  Accel_Z-=65536;     //数据类型转换
+	  	if(Accel_X>32768) Accel_X-=65536;    //数据类型转换
+      if(Accel_Y>32768) Accel_Y-=65536;
+
+	   	Accel_Y_atan=atan2(Accel_X,Accel_Z)*180/PI;                 //计算与地面的夹角	
+	   	Accel_X_atan=atan2(Accel_Y,Accel_Z)*180/PI;                 //计算与地面的夹角	
+       
+		  Gyro_Y=Gyro_Y/16.4;                                         //陀螺仪量程转换	
+      Gyro_X=Gyro_X/16.4;                                         //陀螺仪量程转换
+		                                   	
+      Yijielvbo_X(Accel_X_atan,-Gyro_X);	
+			Yijielvbo_Y(Accel_Y_atan,-Gyro_Y);
+	    Angle_Balance=angle_Y;                                      //更新平衡倾角
+      
+	  	
+}

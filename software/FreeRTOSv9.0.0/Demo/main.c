@@ -94,7 +94,7 @@ here. */
 #include "mpu6050/ioi2c.h"
 #include "mpu6050/MPU6050.h"
 #include "mpu6050/filter.h"
-//test git
+
 /* Priorities at which the tasks are created.  The event semaphore task is
 given the maximum priority of ( configMAX_PRIORITIES - 1 ) to ensure it runs as
 soon as the semaphore is given. */
@@ -111,14 +111,19 @@ converted to ticks using the pdMS_TO_TICKS() macro. */
 #define mainQUEUE_LENGTH                    ( 1 )
 static void prvSetupHardware( void );
 extern void idle_task(void);
-
+#define BUTTON_1_GPIO_OFFSET  23
+#define BUTTON_2_GPIO_OFFSET  6
+#define BUTTON_3_GPIO_OFFSET  14
+#define BUTTON_4_GPIO_OFFSET  31
+#define BUTTON_5_GPIO_OFFSET  7
 u8 ref=0;
 u16 vx=15542,vy=11165; 
 u16 chx=140,chy=146;
 #define PI 3.14159265
 float Angle_Balance; 
 
-uint8_t adc;
+uint8_t adc,bldc_mode=0;
+
 /* The queue used by the queue send and queue receive tasks. */
 static QueueHandle_t xQueue = NULL;
 
@@ -134,9 +139,34 @@ void config_eclic_irqs (){
   //  The button have higher level
     eclic_set_int_level(CLIC_INT_TMR, 1 << 4);
     eclic_set_int_level(ECLIC_INT_DEVICE_zeroA, 12 << 4);
-    eclic_set_int_level(ECLIC_INT_DEVICE_zeroB, 12<< 4);
+    eclic_set_int_level(ECLIC_INT_DEVICE_zeroB, 12 << 4);
     eclic_set_int_level(ECLIC_INT_DEVICE_zeroC, 12 << 4);
  } 
+void button_init( void )
+{
+
+  GPIO_REG(GPIO_OUTPUT_EN)  &= ~((0x1 << BUTTON_1_GPIO_OFFSET) | (0x1 << BUTTON_2_GPIO_OFFSET));
+  GPIO_REG(GPIO_OUTPUT_EN)  &= ~((0x1 << BUTTON_3_GPIO_OFFSET) | (0x1 << BUTTON_4_GPIO_OFFSET)| (0x1 << BUTTON_5_GPIO_OFFSET));
+  GPIO_REG(GPIO_INPUT_EN)  |= ((0x1 << BUTTON_1_GPIO_OFFSET) | (0x1 << BUTTON_2_GPIO_OFFSET));
+  GPIO_REG(GPIO_INPUT_EN)  |= ((0x1 << BUTTON_3_GPIO_OFFSET) | (0x1 << BUTTON_4_GPIO_OFFSET)| (0x1 << BUTTON_5_GPIO_OFFSET));
+  
+}
+void bldc_mode_detect()
+{
+  if (GPIO_REG(GPIO_INPUT_VAL)&(0x1 << BUTTON_3_GPIO_OFFSET))
+  {
+    delay_ms(5);
+    if(GPIO_REG(GPIO_INPUT_VAL)&(0x1 << BUTTON_3_GPIO_OFFSET))
+    {
+      bldc_mode=1;
+    }
+  }
+  else
+  {
+    bldc_mode=0;
+  }
+  
+}
 
 void prvSetupHardware( void )
 {
@@ -144,9 +174,12 @@ void prvSetupHardware( void )
     Adc_Init();
     MPU6050_initialize(); 
     DS18B20_Init();
+    button_init();
+    bldc_mode_detect();
     Lcd_Init(); 
     LCD_Clear(0xFCFCFC);
     showimage(); 
+    string_dis();
     config_eclic_irqs();
     pwm_init();
     ZERO_init();
@@ -155,14 +188,22 @@ void prvSetupHardware( void )
 
 void string_dis()
 {
-
-	
 	BACK_COLOR=WHITE;
 	POINT_COLOR=RED;
   LCD_ShowString(10,100,"temperature:");
   LCD_ShowString(10,132,"ADC:");
   LCD_ShowString(10,164,"Angle_X:"); 
   LCD_ShowString(10,196,"Angle_Y:"); 
+  LCD_ShowString(100,16,"BLDC_CTRL_MODE:"); 
+  if(bldc_mode==1)
+  {
+    LCD_ShowString(260,16,"angleY");
+  }
+  else
+  {
+    LCD_ShowString(260,16,"ADC");
+  }
+  
 }
 void sen_dis()
 {
@@ -197,9 +238,6 @@ void sen_dis()
     LCD_ShowString(98,198," ");
     LCD_ShowNum(106,198,angle_Y,3);
   }
-  
-
-  
 }
 void showimage() 
 {
@@ -313,8 +351,7 @@ int main(void)
 
 void start_task(void *pvParameters)
 {
-    
-  string_dis();
+    showimage(); 
     while(1)
     {
 	    sen_dis();  
@@ -324,13 +361,20 @@ void start_task(void *pvParameters)
 
 void start_task2(void *pvParameters)
 {
-   
     while(1)
     {
         adc=Get_Adc();
-	      PWM=adc+50;
-    
-        vTaskDelay(20);
+        if(!bldc_mode)
+        {
+          PWM=adc+50;
+          if(PWM>200) PWM=200;
+        }
+	      else
+        {
+          PWM=asb(angle_Y)c+50;
+          if(PWM>200) PWM=200;
+        }
+        vTaskDelay(30);
     }
 }   
 
@@ -349,19 +393,19 @@ static void vExampleTimerCallback( TimerHandle_t xTimer )
 void zeroA_HANDLER()
 {
   SIGNAL();
-  printf("a\n");
+  
   GPIO_REG(GPIO_RISE_IP) = (0x1 << zeroA__GPIO_OFFSET);
 }
 void zeroB_HANDLER()
 {
   SIGNAL();
-  printf("b\n");
+  
   GPIO_REG(GPIO_RISE_IP) = (0x1 << zeroB__GPIO_OFFSET);
 }
 void zeroC_HANDLER()
 {
   SIGNAL();
-  printf("c\n");
+  
   GPIO_REG(GPIO_RISE_IP) = (0x1 << zeroC__GPIO_OFFSET);
 }
 
@@ -428,9 +472,7 @@ extern UBaseType_t uxCriticalNesting;
 void vApplicationIdleHook( void )
 {
 volatile size_t xFreeStackSpace;
-// wait_seconds(2);
- //printf(", the mstatus is 0x%x \n", read_csr(mstatus));
-// printf(", the mepc is 0x%x\n", read_csr(mepc));
+
    // idle_task();//printf("In trap handler, the mstatus is 0x%x \n", read_csr(mstatus));
     /* The idle task hook is enabled by setting configUSE_IDLE_HOOK to 1 in
     FreeRTOSConfig.h.
@@ -438,16 +480,5 @@ volatile size_t xFreeStackSpace;
     This function is called on each cycle of the idle task.  In this case it
     does nothing useful, other than report the amount of FreeRTOS heap that
     remains unallocated. */
-  //  xFreeStackSpace = xPortGetFreeHeapSize();
- // printf(" the mie is 0x%x\n",(read_csr(mstatus)&MSTATUS_MIE));
- //s printf( "idle_task\n");
-  //      eclic_enable_interrupt (CLIC_INT_TMR);
-  //  set_csr(mstatus, MSTATUS_MIE);
-   // if( xFreeStackSpace > 100 )
-   // {
-        /* By now, the kernel has allocated everything it is going to, so
-        if there is a lot of heap remaining unallocated then
-        the value of configTOTAL_HEAP_SIZE in FreeRTOSConfig.h can be
-        reduced accordingly. */
-  //  }
+ 
 }
