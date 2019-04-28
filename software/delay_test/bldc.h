@@ -50,13 +50,29 @@
 #define  SENSE_B {eclic_disable_interrupt (ECLIC_INT_DEVICE_zeroA);eclic_disable_interrupt (ECLIC_INT_DEVICE_zeroC);eclic_enable_interrupt (ECLIC_INT_DEVICE_zeroB);}
 #define  SENSE_C {eclic_disable_interrupt (ECLIC_INT_DEVICE_zeroA);eclic_disable_interrupt (ECLIC_INT_DEVICE_zeroB);eclic_enable_interrupt (ECLIC_INT_DEVICE_zeroC);}
 
-#define  SENSE_A_RISING_INT  {GPIO_REG(GPIO_RISE_IE) |= (1 << zeroA__GPIO_OFFSET);GPIO_REG(GPIO_FALL_IE) &=~(1 << zeroA__GPIO_OFFSET);} 
-#define  SENSE_B_RISING_INT  {GPIO_REG(GPIO_RISE_IE) |= (1 << zeroB__GPIO_OFFSET);GPIO_REG(GPIO_FALL_IE) &=~(1 << zeroB__GPIO_OFFSET);} 
-#define  SENSE_C_RISING_INT  {GPIO_REG(GPIO_RISE_IE) |= (1 << zeroC__GPIO_OFFSET);GPIO_REG(GPIO_FALL_IE) &=~(1 << zeroC__GPIO_OFFSET);} 
+#define  SENSE_A_RISING_INT  {GPIO_REG(GPIO_RISE_IE) |= (1 << zeroA__GPIO_OFFSET);GPIO_REG(GPIO_FALL_IE) &=~(1 << zeroA__GPIO_OFFSET);  \
+                              GPIO_REG(GPIO_RISE_IE) &=~(1 << zeroB__GPIO_OFFSET);GPIO_REG(GPIO_FALL_IE) &=~(1 << zeroB__GPIO_OFFSET);  \
+                              GPIO_REG(GPIO_RISE_IE) &=~(1 << zeroC__GPIO_OFFSET);GPIO_REG(GPIO_FALL_IE) &=~(1 << zeroC__GPIO_OFFSET);    } 
 
-#define  SENSE_A_FALLING_INT  {GPIO_REG(GPIO_RISE_IE) &= ~(1 << zeroA__GPIO_OFFSET);GPIO_REG(GPIO_FALL_IE) |=(1 << zeroA__GPIO_OFFSET);} 
-#define  SENSE_B_FALLING_INT  {GPIO_REG(GPIO_RISE_IE) &= ~ (1 << zeroB__GPIO_OFFSET);GPIO_REG(GPIO_FALL_IE) |=(1 << zeroB__GPIO_OFFSET);} 
-#define  SENSE_C_FALLING_INT  {GPIO_REG(GPIO_RISE_IE) &= ~ (1 << zeroC__GPIO_OFFSET);GPIO_REG(GPIO_FALL_IE) |=(1 << zeroC__GPIO_OFFSET);} 
+#define  SENSE_B_RISING_INT  {GPIO_REG(GPIO_RISE_IE) &=~(1 << zeroA__GPIO_OFFSET);GPIO_REG(GPIO_FALL_IE) &=~(1 << zeroA__GPIO_OFFSET);  \
+                              GPIO_REG(GPIO_RISE_IE) |= (1 << zeroB__GPIO_OFFSET);GPIO_REG(GPIO_FALL_IE) &=~(1 << zeroB__GPIO_OFFSET);  \
+                              GPIO_REG(GPIO_RISE_IE) &=~(1 << zeroC__GPIO_OFFSET);GPIO_REG(GPIO_FALL_IE) &=~(1 << zeroC__GPIO_OFFSET);    } 
+
+#define  SENSE_C_RISING_INT  {GPIO_REG(GPIO_RISE_IE) &=~(1 << zeroA__GPIO_OFFSET);GPIO_REG(GPIO_FALL_IE) &=~(1 << zeroA__GPIO_OFFSET);  \
+                              GPIO_REG(GPIO_RISE_IE) &=~ (1 << zeroB__GPIO_OFFSET);GPIO_REG(GPIO_FALL_IE) &=~(1 << zeroB__GPIO_OFFSET);  \
+                              GPIO_REG(GPIO_RISE_IE) |=(1 << zeroC__GPIO_OFFSET);GPIO_REG(GPIO_FALL_IE) &=~(1 << zeroC__GPIO_OFFSET);    }
+
+#define  SENSE_A_FALLING_INT  {GPIO_REG(GPIO_RISE_IE) &=~(1 << zeroA__GPIO_OFFSET);GPIO_REG(GPIO_FALL_IE) |=(1 << zeroA__GPIO_OFFSET);  \
+                              GPIO_REG(GPIO_RISE_IE) &=~ (1 << zeroB__GPIO_OFFSET);GPIO_REG(GPIO_FALL_IE) &=~(1 << zeroB__GPIO_OFFSET);  \
+                              GPIO_REG(GPIO_RISE_IE) &=~ (1 << zeroC__GPIO_OFFSET);GPIO_REG(GPIO_FALL_IE) &=~(1 << zeroC__GPIO_OFFSET);    }
+
+#define  SENSE_B_FALLING_INT {GPIO_REG(GPIO_RISE_IE) &=~(1 << zeroA__GPIO_OFFSET);GPIO_REG(GPIO_FALL_IE) &=~(1 << zeroA__GPIO_OFFSET);  \
+                              GPIO_REG(GPIO_RISE_IE) &=~ (1 << zeroB__GPIO_OFFSET);GPIO_REG(GPIO_FALL_IE) |=(1 << zeroB__GPIO_OFFSET);  \
+                              GPIO_REG(GPIO_RISE_IE) &=~ (1 << zeroC__GPIO_OFFSET);GPIO_REG(GPIO_FALL_IE) &=~(1 << zeroC__GPIO_OFFSET);    }
+
+#define  SENSE_C_FALLING_INT  {GPIO_REG(GPIO_RISE_IE) &=~(1 << zeroA__GPIO_OFFSET);GPIO_REG(GPIO_FALL_IE) &=~(1 << zeroA__GPIO_OFFSET);  \
+                              GPIO_REG(GPIO_RISE_IE) &=~ (1 << zeroB__GPIO_OFFSET);GPIO_REG(GPIO_FALL_IE) &=~(1 << zeroB__GPIO_OFFSET);  \
+                              GPIO_REG(GPIO_RISE_IE) &=~ (1 << zeroC__GPIO_OFFSET);GPIO_REG(GPIO_FALL_IE) |=(1 << zeroC__GPIO_OFFSET);    }
 
 extern void pwm_init(void);
 extern  void ZERO_init (void);
@@ -64,6 +80,6 @@ extern void Anwerfen(unsigned char pwm);
 extern  void Delay_ms(size_t n); 
 extern void delay_us ( int t); //延时1US   test
 extern unsigned int  PWM;
-
+extern volatile unsigned char Phase;
 
 #endif /* BLDC_H */

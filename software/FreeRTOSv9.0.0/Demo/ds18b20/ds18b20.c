@@ -19,13 +19,7 @@
 #define DS18B20_IO_OUT() {GPIO_REG(GPIO_OUTPUT_EN)  |= (0x1 << ds18b20__GPIO_OFFSET );GPIO_REG(GPIO_INPUT_EN)   &= ~ (0x1 << ds18b20__GPIO_OFFSET);}
 
 #define TMR_FREQ   32768
-void delay_ms_18B20 ( unsigned int t) //延时1MS {
-{
-	volatile unsigned int  repeatCount = 1000;
-     repeatCount=t;
-  while (repeatCount--) ;
 
-}
 void delayus (unsigned  int t) //延时1uS {
 {
 	volatile unsigned int  repeatCount = 1000;

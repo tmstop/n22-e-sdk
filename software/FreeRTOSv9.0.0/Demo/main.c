@@ -105,7 +105,7 @@ soon as the semaphore is given. */
 
 /* The period of the example software timer, specified in milliseconds, and
 converted to ticks using the pdMS_TO_TICKS() macro. */
-#define mainSOFTWARE_TIMER_PERIOD_MS        pdMS_TO_TICKS( 10 )
+#define mainSOFTWARE_TIMER_PERIOD_MS        pdMS_TO_TICKS( 50 )
 
 
 #define mainQUEUE_LENGTH                    ( 1 )
@@ -138,9 +138,9 @@ void config_eclic_irqs (){
     eclic_set_nlbits(4);
   //  The button have higher level
     eclic_set_int_level(CLIC_INT_TMR, 1 << 4);
-    eclic_set_int_level(ECLIC_INT_DEVICE_zeroA, 12 << 4);
-    eclic_set_int_level(ECLIC_INT_DEVICE_zeroB, 12 << 4);
-    eclic_set_int_level(ECLIC_INT_DEVICE_zeroC, 12 << 4);
+    eclic_set_int_level(ECLIC_INT_DEVICE_zeroA, 10 << 4);
+    eclic_set_int_level(ECLIC_INT_DEVICE_zeroB, 10 << 4);
+    eclic_set_int_level(ECLIC_INT_DEVICE_zeroC, 10 << 4);
  } 
 void button_init( void )
 {
@@ -176,10 +176,7 @@ void prvSetupHardware( void )
     DS18B20_Init();
     button_init();
     bldc_mode_detect();
-    Lcd_Init(); 
-    LCD_Clear(0xFCFCFC);
-    showimage(); 
-    string_dis();
+    
     config_eclic_irqs();
     pwm_init();
     ZERO_init();
@@ -207,17 +204,27 @@ void string_dis()
 }
 void sen_dis()
 {
-  short temperature; 
+  volatile short temperature,temperature_old; 
 	BACK_COLOR=WHITE;
 	POINT_COLOR=RED;
   temperature=DS18B20_Get_Temp();
   adc= Get_Adc();
+  if((temperature!=0)&&(temperature!=850))
+  {
+    if((abs(temperature-temperature_old)<5)||temperature_old==0)
+    {
+      LCD_ShowNum(106,100,temperature/10,2);
+  	  LCD_ShowString(122,100,".");
+	    LCD_ShowNum(130,100,temperature%10,1);
+    }
+    
+  }
+  
 
-	LCD_ShowNum(106,100,temperature/10,2);
-	LCD_ShowString(122,100,".");
-	LCD_ShowNum(130,100,temperature%10,1);
+	
 
 	LCD_ShowNum(106,132,adc,3);
+  
   if(angle_X<0)
   {
     LCD_ShowString(98,164,"-");
@@ -238,6 +245,12 @@ void sen_dis()
     LCD_ShowString(98,198," ");
     LCD_ShowNum(106,198,angle_Y,3);
   }
+  if(temperature!=850)
+  {
+      temperature_old=temperature;
+  }
+    
+  
 }
 void showimage() 
 {
@@ -298,8 +311,12 @@ int main(void)
  
     /* Configure the system ready to run the demo.  The clock configuration
     can be done here if it was not done before main() was called. */
+   
+    Lcd_Init(); 
     
-    
+    LCD_Clear(0xFCFCFC);
+    showimage(); 
+    string_dis();
     xQueue = xQueueCreate(     /* The number of items the queue can hold. */
                             mainQUEUE_LENGTH,
                             /* The size of each item the queue holds. */
@@ -326,7 +343,7 @@ int main(void)
 
  
    xExampleSoftwareTimer = xTimerCreate(     
-                                            ( const char * ) "LEDTimer",
+                                            ( const char * ) "Timer",
                                             
                                             mainSOFTWARE_TIMER_PERIOD_MS,
                                             
@@ -351,11 +368,11 @@ int main(void)
 
 void start_task(void *pvParameters)
 {
-    showimage(); 
+    
     while(1)
     {
-	    sen_dis();  
-      vTaskDelay(10);
+	   sen_dis();  
+      vTaskDelay(20);
     }
 }   
 
@@ -363,18 +380,20 @@ void start_task2(void *pvParameters)
 {
     while(1)
     {
+      
         adc=Get_Adc();
         if(!bldc_mode)
         {
-          PWM=adc+50;
-          if(PWM>200) PWM=200;
+          PWM=adc/2+60;
+          if(PWM>100) PWM=100;
         }
 	      else
         {
-          PWM=asb(angle_Y)c+50;
-          if(PWM>200) PWM=200;
+          PWM=abs(angle_Y)+50;
+          if(PWM>100) PWM=100;
         }
-        vTaskDelay(30);
+        
+        vTaskDelay(20);
     }
 }   
 
@@ -384,31 +403,55 @@ static void vExampleTimerCallback( TimerHandle_t xTimer )
     /* The timer has expired.  Count the number of times this happens.  The
     timer that calls this function is an auto re-load timer, so it will
     execute periodically. */
-   
+ //  printf("post   ok \n");
    Get_Angle();
    
    
 
 }
+
+
 void zeroA_HANDLER()
 {
+GPIO_REG(GPIO_OUTPUT_VAL)^=(0x1 << 26);
   SIGNAL();
+//  printf("a\n");
+
+    if(GPIO_REG(GPIO_RISE_IE) &(0x1 << zeroA__GPIO_OFFSET))
+    GPIO_REG(GPIO_RISE_IP) = (0x1 << zeroA__GPIO_OFFSET);
+  //  else if(GPIO_REG(GPIO_FALL_IE) &(0x1 << zeroA__GPIO_OFFSET))
+  //  GPIO_REG(GPIO_FALL_IP) = (0x1 << zeroA__GPIO_OFFSET);
   
-  GPIO_REG(GPIO_RISE_IP) = (0x1 << zeroA__GPIO_OFFSET);
 }
 void zeroB_HANDLER()
 {
+GPIO_REG(GPIO_OUTPUT_VAL)^=(0x1 << 26);
+   
   SIGNAL();
   
-  GPIO_REG(GPIO_RISE_IP) = (0x1 << zeroB__GPIO_OFFSET);
+//  printf("b\n");
+
+   if(GPIO_REG(GPIO_RISE_IE) &(0x1 << zeroB__GPIO_OFFSET))
+    GPIO_REG(GPIO_RISE_IP) = (0x1 << zeroB__GPIO_OFFSET);
+  // else if(GPIO_REG(GPIO_FALL_IE) &(0x1 << zeroB__GPIO_OFFSET))
+  //  GPIO_REG(GPIO_FALL_IP) = (0x1 << zeroB__GPIO_OFFSET);
+  
+  
+  
+  
 }
 void zeroC_HANDLER()
 {
+  GPIO_REG(GPIO_OUTPUT_VAL)^=(0x1 << 26);
   SIGNAL();
+//  printf("c\n");
   
-  GPIO_REG(GPIO_RISE_IP) = (0x1 << zeroC__GPIO_OFFSET);
+  if(GPIO_REG(GPIO_RISE_IE) &(0x1 << zeroC__GPIO_OFFSET))
+    GPIO_REG(GPIO_RISE_IP) = (0x1 << zeroC__GPIO_OFFSET);
+  //else if(GPIO_REG(GPIO_FALL_IE) &(0x1 << zeroC__GPIO_OFFSET))
+  //  GPIO_REG(GPIO_FALL_IP) = (0x1 << zeroC__GPIO_OFFSET);
+  
 }
-
 
 void vApplicationTickHook( void )
 {

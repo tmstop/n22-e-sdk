@@ -103,8 +103,8 @@ __uint8_t SENSE ()
 void SIGNAL(void) //比较器中断 
 {
   unsigned char sense = 0;
-  do
-  {
+ // do
+ // {
     if(SENSE()) sense = 1; else sense = 0;
     switch(Phase)
     {
@@ -112,30 +112,38 @@ void SIGNAL(void) //比较器中断
               STEUER_A_H;
               if(!sense) 
                 {
-                  STEUER_C_L;
-                  SENSE_B; 
-                   SENSE_B_RISING_INT;
-                  Phase++; 
-                  CntKommutierungen++;
+                  delay_us(100);
+                  if (!SENSE())
+                  {
+                    STEUER_C_L;
+                    SENSE_B_RISING_INT;
+                    GPIO_REG(GPIO_RISE_IP) |=(1 << zeroB__GPIO_OFFSET);
+                    GPIO_REG(GPIO_FALL_IP) |=(1 << zeroB__GPIO_OFFSET);
+                    SENSE_B;
+                    Phase++; 
+                    CntKommutierungen++;
+                  }
                 }
                 else 
                 {
                   STEUER_B_L;
-                  
                 } 
               break;
       case 1:  
               STEUER_C_L;
               if(sense) 
                 {
-                  STEUER_B_H;
-                   SENSE_A; 
+                  delay_us(100);
+                  if (SENSE())
+                  {
+                    STEUER_B_H;
                     SENSE_A_FALLING_INT;
-               
-                //  SENSE_B; 
-                 // SENSE_B_RISING_INT;
-                  Phase++; 
-                  CntKommutierungen++;
+                    GPIO_REG(GPIO_RISE_IP) |=(1 << zeroA__GPIO_OFFSET);
+                    GPIO_REG(GPIO_FALL_IP) |=(1 << zeroA__GPIO_OFFSET);
+                    SENSE_A; 
+                    Phase++; 
+                    CntKommutierungen++;
+                  }
                 }
                 else 
                 {
@@ -148,13 +156,18 @@ void SIGNAL(void) //比较器中断
               STEUER_B_H;
               if(!sense) 
                 {
-                  STEUER_A_L;
-                  
-                  SENSE_C; 
-                  SENSE_C_RISING_INT;
-                 
-                  Phase++; 
-                  CntKommutierungen++;
+                  delay_us(100);
+                  if (!SENSE())
+                  {
+                    STEUER_A_L;
+                    SENSE_C_RISING_INT;
+                    GPIO_REG(GPIO_RISE_IP) |=(1 << zeroC__GPIO_OFFSET);
+                    GPIO_REG(GPIO_FALL_IP) |=(1 << zeroC__GPIO_OFFSET);
+                    SENSE_C; 
+                    
+                    Phase++; 
+                    CntKommutierungen++;
+                  }
                 }
                 else 
                 {
@@ -167,11 +180,18 @@ void SIGNAL(void) //比较器中断
             STEUER_A_L;
               if(sense) 
                 {
-                  STEUER_C_H;
-                  SENSE_B; 
-                  SENSE_B_FALLING_INT;
-                  Phase++; 
-                  CntKommutierungen++;
+                  delay_us(100);
+                  if (SENSE())
+                  {
+                    STEUER_C_H;
+                    SENSE_B_FALLING_INT;
+                    GPIO_REG(GPIO_RISE_IP) |=(1 << zeroB__GPIO_OFFSET);
+                    GPIO_REG(GPIO_FALL_IP) |=(1 << zeroB__GPIO_OFFSET);
+                    SENSE_B; 
+                    
+                    Phase++; 
+                    CntKommutierungen++;
+                  }
                 }
                 else 
                 {
@@ -185,13 +205,19 @@ void SIGNAL(void) //比较器中断
             STEUER_C_H;
               if(!sense) 
                 {
-                  STEUER_B_L;
+                  delay_us(100);
+                  if (!SENSE())
+                  {
+                    STEUER_B_L;
+                    SENSE_A_RISING_INT;
+                    GPIO_REG(GPIO_RISE_IP) |=(1 << zeroA__GPIO_OFFSET);
+                    GPIO_REG(GPIO_FALL_IP) |=(1 << zeroA__GPIO_OFFSET);
                   
-                 
-                   SENSE_A; 
-                   SENSE_A_RISING_INT;
-                  Phase++; 
-                  CntKommutierungen++;
+                    SENSE_A; 
+                    
+                    Phase++; 
+                    CntKommutierungen++;
+                  }
                 }
               else 
                 {
@@ -204,12 +230,18 @@ void SIGNAL(void) //比较器中断
               STEUER_B_L;
               if(sense) 
                 {
-                  STEUER_A_H;
-                  
-                   SENSE_C; 
+                  delay_us(100);
+                  if (SENSE())
+                  {
+                    STEUER_A_H;
                     SENSE_C_FALLING_INT;
-                  Phase = 0; 
-                  CntKommutierungen++;
+                    GPIO_REG(GPIO_RISE_IP) |=(1 << zeroC__GPIO_OFFSET);
+                    GPIO_REG(GPIO_FALL_IP) |=(1 << zeroC__GPIO_OFFSET);
+                    SENSE_C; 
+                  
+                    Phase = 0; 
+                    CntKommutierungen++;
+                  }
                 }
                 else 
                 {
@@ -218,9 +250,9 @@ void SIGNAL(void) //比较器中断
                 } 
               break;
     }
-  }
+ // }
   
-while(((!SENSE()) && sense) || (SENSE() && !sense));
+//while(((!SENSE()) && sense) || (SENSE() && !sense));
  
 }
 

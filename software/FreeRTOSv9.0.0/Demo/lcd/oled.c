@@ -66,7 +66,7 @@ void LCD_WR_DATA8(char da) //发送数据-8位参数
 	LCD_Writ_Bus(temp2);
     LCD_Writ_Bus(temp3);
 
-    Delayus(15);
+    Delayus(18);
 	OLED_CS_Set();
 }	  
 void LCD_WR_REG(char da)	 
@@ -79,10 +79,10 @@ void LCD_WR_REG(char da)
 
 }
  void LCD_WR_REG_DATA(int reg,int da)
-{//	OLED_CS_Clr();
+{	OLED_CS_Clr();
     LCD_WR_REG(reg);
 	LCD_WR_DATA(da);
-//	OLED_CS_Set();
+	OLED_CS_Set();
 }
 
 void Address_set(unsigned int x1,unsigned int y1,unsigned int x2,unsigned int y2)

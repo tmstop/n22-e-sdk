@@ -13,7 +13,8 @@
 #include "n22/drivers/n22_tmr.h"
 #include "n22/drivers/n22_clic.h"
 
-
+#include "oled.h"
+#include "bmp.h"
 #include "bldc.h"
 #include "ioi2c.h"
 #include "MPU6050.h"
@@ -25,13 +26,49 @@
 
 #define PI 3.14159265
 float Angle_Balance; 
+__uint8_t adc,bldc_mode=0;
 //extern unsigned int  PWM=0;
+void sen_dis()
+{
+  short temperature; 
+	BACK_COLOR=WHITE;
+	POINT_COLOR=RED;
+  temperature=DS18B20_Get_Temp();
+  //adc= Get_Adc();
+ if(temperature)
+ {
+	LCD_ShowNum(106,100,temperature/10,2);
+	LCD_ShowString(122,100,".");
+	LCD_ShowNum(130,100,temperature%10,1);
+}
+	LCD_ShowNum(106,132,adc,3);
+  if(angle_X<0)
+  {
+    LCD_ShowString(98,164,"-");
+    LCD_ShowNum(106,164,abs(angle_X),3);
+  }
+  else
+  {
+    LCD_ShowString(98,164," ");
+    LCD_ShowNum(106,164,angle_X,3);
+  }
+  if(angle_Y<0)
+  {
+    LCD_ShowString(98,198,"-");
+    LCD_ShowNum(106,198,abs(angle_Y),3);
+  }
+  else
+  {
+    LCD_ShowString(98,198," ");
+    LCD_ShowNum(106,198,angle_Y,3);
+  }
+}
 void config_eclic_irqs()
 {
 
   // Have to enable the interrupt both at the GPIO level,
   // and at the CLIC level.
-  eclic_enable_interrupt (CLIC_INT_TMR);
+ // eclic_enable_interrupt (CLIC_INT_TMR);
  
 
   eclic_disable_interrupt(ECLIC_INT_DEVICE_zeroA);
@@ -39,11 +76,12 @@ void config_eclic_irqs()
   eclic_disable_interrupt(ECLIC_INT_DEVICE_zeroC);//eclic_disable_interrupt
   eclic_set_nlbits(4);
   //  The button have higher level
-  eclic_set_int_level(CLIC_INT_TMR, 1 << 4);
-  eclic_set_int_level(ECLIC_INT_DEVICE_zeroA, 2 << 4);
-  eclic_set_int_level(ECLIC_INT_DEVICE_zeroB, 2<< 4);
-  eclic_set_int_level(ECLIC_INT_DEVICE_zeroC, 2 << 4);
+ // eclic_set_int_level(CLIC_INT_TMR, 1 << 4);
+  eclic_set_int_level(ECLIC_INT_DEVICE_zeroA, 9<< 4);
+  eclic_set_int_level(ECLIC_INT_DEVICE_zeroB, 9<< 4);
+  eclic_set_int_level(ECLIC_INT_DEVICE_zeroC, 9 << 4);
 }
+
 void setup_mtime (){
 
     // Set the machine timer to go off in 2 seconds.
@@ -52,8 +90,28 @@ void setup_mtime (){
     uint64_t now = *mtime;
     uint64_t then = now + 0.02* TMR_FREQ;
     *mtimecmp = then;
-    Get_Angle();
+   // Get_Angle();
    
+}
+
+void string_dis()
+{
+	BACK_COLOR=WHITE;
+	POINT_COLOR=RED;
+  LCD_ShowString(10,100,"temperature:");
+  LCD_ShowString(10,132,"ADC:");
+  LCD_ShowString(10,164,"Angle_X:"); 
+  LCD_ShowString(10,196,"Angle_Y:"); 
+  LCD_ShowString(100,16,"BLDC_CTRL_MODE:"); 
+  if(bldc_mode==1)
+  {
+    LCD_ShowString(260,16,"angleY");
+  }
+  else
+  {
+    LCD_ShowString(260,16,"ADC");
+  }
+  
 }
 
 void Get_Angle()
@@ -105,9 +163,9 @@ void MTIME_HANDLER(){
   volatile uint64_t * mtime       = (uint64_t*) (TMR_CTRL_ADDR + TMR_MTIME);
   volatile uint64_t * mtimecmp    = (uint64_t*) (TMR_CTRL_ADDR + TMR_MTIMECMP);
   uint64_t now = *mtime;
-  uint64_t then = now + 0.02 * TMR_FREQ;// Here we set 1 second, but we need to wait 5 cycles to get out from this handler, so the blink will not toggle as 1 cycle
+  uint64_t then = now + 0.01 * TMR_FREQ;// Here we set 1 second, but we need to wait 5 cycles to get out from this handler, so the blink will not toggle as 1 cycle
   *mtimecmp = then;
-  Get_Angle();
+ // Get_Angle();
 }
 
 
@@ -125,7 +183,10 @@ void main(void)
   short temperature;
   unsigned char x,y;
   unsigned char adc_value;
-  
+   GPIO_REG(GPIO_INPUT_EN)    &= ~((0x1 << 30)|(0x1 << 26));
+	  GPIO_REG(GPIO_OUTPUT_EN) |= ((0x1 << 30)|(0x1 << 26)); 
+  Lcd_Init(); 
+  LCD_Clear(0xFCFCFC);
   DS18B20_Init();
   pwm_init();
   ZERO_init();
@@ -134,14 +195,27 @@ void main(void)
   MPU6050_initialize(); 
   config_eclic_irqs();
   setup_mtime ();
- Anwerfen(80);
- 
- set_csr(mstatus, MSTATUS_MIE);
+  
+ // showimage(); 
+  string_dis();
+  Anwerfen(100);
+  
+  set_csr(mstatus, MSTATUS_MIE);
 
   while (1)
   {
     /* code */
+     sen_dis();
+  temperature=DS18B20_Get_Temp();
+//  
+  
+   adc=Get_Adc();
    
+      PWM=adc/2+50;
+  
+    if(PWM>100) PWM=100; 
+    
+   // printf("PWM=  %d\n  ",PWM);
  //   temperature = DS18B20_Get_Temp();
   //  printf("temperature=%d.%d\n",temperature/10,temperature%10);
   //  Get_Angle();
@@ -149,26 +223,47 @@ void main(void)
  
  //adc_value=Get_Adc();
  //   PWM=adc_value+50;
- //printf("adc=  %d\n  ",adc_value+50);
+ printf("adc=  %d\n  ",adc);
   }
 }
 
 
 void zeroA_HANDLER()
 {
+GPIO_REG(GPIO_OUTPUT_VAL)^=(0x1 << 26);
+
   SIGNAL();
 //  printf("a\n");
-  GPIO_REG(GPIO_RISE_IP) = (0x1 << zeroA__GPIO_OFFSET);
+ 
+  //  if(GPIO_REG(GPIO_RISE_IE) &(0x1 << zeroA__GPIO_OFFSET))
+    GPIO_REG(GPIO_RISE_IP) = (0x1 << zeroA__GPIO_OFFSET);
+  //  else if(GPIO_REG(GPIO_FALL_IE) &(0x1 << zeroA__GPIO_OFFSET))
+    GPIO_REG(GPIO_FALL_IP) = (0x1 << zeroA__GPIO_OFFSET);
 }
 void zeroB_HANDLER()
 {
+GPIO_REG(GPIO_OUTPUT_VAL)^=(0x1 << 26);
+   
+ 
   SIGNAL();
+  
 //  printf("b\n");
-  GPIO_REG(GPIO_RISE_IP) = (0x1 << zeroB__GPIO_OFFSET);
+
+  //  if(GPIO_REG(GPIO_RISE_IE) &(0x1 << zeroB__GPIO_OFFSET))
+    GPIO_REG(GPIO_RISE_IP) = (0x1 << zeroB__GPIO_OFFSET);
+  // else if(GPIO_REG(GPIO_FALL_IE) &(0x1 << zeroA__GPIO_OFFSET))
+    GPIO_REG(GPIO_FALL_IP) = (0x1 << zeroA__GPIO_OFFSET);
+
 }
 void zeroC_HANDLER()
 {
+ GPIO_REG(GPIO_OUTPUT_VAL)^=(0x1 << 26);
+ 
   SIGNAL();
 //  printf("c\n");
-  GPIO_REG(GPIO_RISE_IP) = (0x1 << zeroC__GPIO_OFFSET);
+  
+  // if(GPIO_REG(GPIO_RISE_IE) &(0x1 << zeroC__GPIO_OFFSET))
+    GPIO_REG(GPIO_RISE_IP) = (0x1 << zeroC__GPIO_OFFSET);
+ //   else if(GPIO_REG(GPIO_FALL_IE) &(0x1 << zeroC__GPIO_OFFSET))
+    GPIO_REG(GPIO_FALL_IP) = (0x1 << zeroC__GPIO_OFFSET);
 }

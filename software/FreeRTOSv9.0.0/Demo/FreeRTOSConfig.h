@@ -80,7 +80,7 @@ your application. */
 #define configUSE_TICKLESS_IDLE                 0
 #define configCPU_CLOCK_HZ                      265000000
 #define configRTC_CLOCK_HZ						32768
-#define configTICK_RATE_HZ                      500
+#define configTICK_RATE_HZ                      200
 #define configMAX_PRIORITIES                    4
 #define configMINIMAL_STACK_SIZE                450
 #define configMAX_TASK_NAME_LEN                 16
@@ -130,7 +130,7 @@ your application. */
 #define configMAX_SYSCALL_INTERRUPT_PRIORITY    [dependent on processor and application]
 #define configMAX_API_CALL_INTERRUPT_PRIORITY   [dependent on processor and application]
 */
-#define configMAX_SYSCALL_INTERRUPT_PRIORITY    4
+#define configMAX_SYSCALL_INTERRUPT_PRIORITY    3
 //#define portCRITICAL_NESTING_IN_TCB				1
 
 /* Define to trap errors during development. */

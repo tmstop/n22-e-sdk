@@ -12,12 +12,15 @@ C_SRCS = delay_test.c \
 	filter.c	\
 	adc.c 		\
 	DataScope_DP.c	\
+	oled.c		\
 
 HEADERS=bldc.h	\
 	ioi2c.h	\
 	MPU6050.h	\
 	filter.h	\
 	DataScope_DP.h	\
+	oled.h		\
+	oledfont.h	\
 
 
 
